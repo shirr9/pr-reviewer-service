@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS pull_request (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    author_id INT REFERENCES "user"(id),
+    status pr_status DEFAULT 'OPEN',
+    need_more_reviewers BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
