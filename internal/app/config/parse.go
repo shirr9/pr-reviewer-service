@@ -27,10 +27,5 @@ func MustLoad(path string) (*Config, error) {
 	if err := cleanenv.ReadConfig(path, &cfg); err != nil {
 		return nil, err
 	}
-
-	if err := cfg.Validate(); err != nil {
-		return nil, fmt.Errorf("config validation failed: %w", err)
-	}
-
 	return &cfg, nil
 }
