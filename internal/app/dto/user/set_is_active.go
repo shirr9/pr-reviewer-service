@@ -2,7 +2,7 @@ package user
 
 // SetIsActiveRequest represents the request to set user's active status.
 type SetIsActiveRequest struct {
-	UserID   string `json:"user_id"`
+	UserID   string `json:"user_id" validate:"required"`
 	IsActive bool   `json:"is_active"`
 }
 
