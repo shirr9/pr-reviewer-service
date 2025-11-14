@@ -1,7 +1,9 @@
 CREATE TABLE IF NOT EXISTS pr_reviewer (
-    pr_id INT REFERENCES pull_request(id) ON DELETE CASCADE,
-    reviewer_id INT REFERENCES "user"(id) ON DELETE RESTRICT,
-    PRIMARY KEY (pr_id, reviewer_id)
+    pr_id  VARCHAR(255),
+    reviewer_id VARCHAR(255),
+    PRIMARY KEY (pr_id, reviewer_id),
+    FOREIGN KEY (pr_id) REFERENCES pull_request(id) ON DELETE CASCADE,
+    FOREIGN KEY (reviewer_id) REFERENCES "user"(id) ON DELETE RESTRICT
 );
 
 CREATE INDEX IF NOT EXISTS idx_pr_reviewer_pr ON pr_reviewer(pr_id);
