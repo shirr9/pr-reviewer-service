@@ -1,0 +1,10 @@
+# env can be dev/local/prod
+env: "dev"
+
+postgres:
+  user: "postgres"
+  password: ""
+  host: "db"  # use "db" for Docker, "localhost" for local development
+  port: "5432"
+  db_name: "mydb1"
+  sslmode: "disable"
