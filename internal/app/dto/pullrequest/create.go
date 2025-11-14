@@ -12,9 +12,9 @@ type PR struct {
 
 // CreatePrRequest represents a request to create a new pull request.
 type CreatePrRequest struct {
-	PullRequestID   string `json:"pull_request_id"`
-	PullRequestName string `json:"pull_request_name"`
-	AuthorID        string `json:"author_id"`
+	PullRequestID   string `json:"pull_request_id" validate:"required"`
+	PullRequestName string `json:"pull_request_name" validate:"required"`
+	AuthorID        string `json:"author_id" validate:"required"`
 }
 
 // CreatePrResponse represents the response of creating a pull request.
