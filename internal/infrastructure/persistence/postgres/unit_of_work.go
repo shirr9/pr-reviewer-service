@@ -61,7 +61,7 @@ type txOrPool interface {
 type txKey struct{}
 
 // getTx extracts transaction from context or returns pool.
-func getTx(ctx context.Context, pool Connection) txOrPool {
+func getTx(ctx context.Context, pool *pgxpool.Pool) txOrPool {
 	if tx, ok := ctx.Value(txKey{}).(pgx.Tx); ok {
 		return tx
 	}
