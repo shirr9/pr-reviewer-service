@@ -2,6 +2,11 @@ package models
 
 import "time"
 
+const (
+	PRStatusOpen   = "OPEN"
+	PRStatusMerged = "MERGED"
+)
+
 type PullRequest struct {
 	Id          string
 	Title       string
