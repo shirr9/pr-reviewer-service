@@ -64,10 +64,10 @@ func NewPullRequestService(
 	}
 }
 
-// Create creates a new pull request and assigns up to 2 reviewers atomically.
+// CreatePR creates a new pull request and assigns up to 2 reviewers atomically.
 // Uses Unit of Work pattern with Repeatable Read isolation level.
-func (s *PullRequestService) Create(ctx context.Context,
-	req pullrequest.CreatePrRequest) (pullrequest.CreatePrResponse, error) {
+func (s *PullRequestService) CreatePR(ctx context.Context,
+	req pullrequest.CreatePrRequest) (*pullrequest.CreatePrResponse, error) {
 
 	var response pullrequest.CreatePrResponse
 	var reviewerIDs []string
@@ -174,17 +174,17 @@ func (s *PullRequestService) Create(ctx context.Context,
 	})
 
 	if err != nil {
-		return pullrequest.CreatePrResponse{}, err
+		return nil, err
 	}
 
 	s.log.LogAttrs(ctx, slog.LevelInfo, "PR created successfully",
 		slog.String("pr_id", req.PullRequestID),
 		slog.Int("reviewers_count", len(reviewerIDs)))
-	return response, nil
+	return &response, nil
 }
 
-// Merge marks PR as MERGED (idempotent operation).
-func (s *PullRequestService) Merge(ctx context.Context, req pullrequest.MergePrRequest) (pullrequest.MergePrResponse, error) {
+// MergePR marks PR as MERGED (idempotent operation).
+func (s *PullRequestService) MergePR(ctx context.Context, req pullrequest.MergePrRequest) (*pullrequest.MergePrResponse, error) {
 	var response pullrequest.MergePrResponse
 
 	err := s.uow.WithinTransaction(ctx, func(txCtx context.Context) error {
@@ -245,17 +245,17 @@ func (s *PullRequestService) Merge(ctx context.Context, req pullrequest.MergePrR
 	})
 
 	if err != nil {
-		return pullrequest.MergePrResponse{}, err
+		return nil, err
 	}
 
 	s.log.LogAttrs(ctx, slog.LevelInfo, "PR merged successfully",
 		slog.String("pr_id", req.PullRequestID))
 
-	return response, nil
+	return &response, nil
 }
 
-// Reassign replaces one reviewer with another from the same team.
-func (s *PullRequestService) Reassign(ctx context.Context, req pullrequest.ReassignReviewerRequest) (pullrequest.ReassignReviewerResponse, error) {
+// ReassignReviewer replaces old reviewer with a new one from the same team.
+func (s *PullRequestService) ReassignReviewer(ctx context.Context, req pullrequest.ReassignReviewerRequest) (*pullrequest.ReassignReviewerResponse, error) {
 	var response pullrequest.ReassignReviewerResponse
 
 	err := s.uow.WithinTransaction(ctx, func(txCtx context.Context) error {
@@ -363,11 +363,11 @@ func (s *PullRequestService) Reassign(ctx context.Context, req pullrequest.Reass
 	})
 
 	if err != nil {
-		return pullrequest.ReassignReviewerResponse{}, err
+		return nil, err
 	}
 
 	s.log.LogAttrs(ctx, slog.LevelInfo, "reviewer reassigned successfully",
-		slog.String("pr_id", req.PullRequestID))
-
-	return response, nil
+		slog.String("pr_id", req.PullRequestID),
+		slog.String("old_reviewer", req.OldReviewerID))
+	return &response, nil
 }

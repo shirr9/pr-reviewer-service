@@ -31,24 +31,24 @@ func NewTeamService(teamRepo TeamRepository, log *slog.Logger) *TeamService {
 }
 
 // AddTeam creates a new team with members (creates/updates users).
-func (s *TeamService) AddTeam(ctx context.Context, req team.AddTeamRequest) (team.AddTeamResponse, error) {
+func (s *TeamService) AddTeam(ctx context.Context, req team.AddTeamRequest) (*team.AddTeamResponse, error) {
 	if len(req.Members) == 0 {
 		s.log.LogAttrs(ctx, slog.LevelWarn, "team must have at least one member",
 			slog.String("team_name", req.TeamName))
-		return team.AddTeamResponse{}, errors.New("BAD_REQUEST", "team must have at least one member")
+		return nil, errors.New("BAD_REQUEST", "team must have at least one member")
 	}
 
 	exists, err := s.teamRepo.IsExists(ctx, req.TeamName)
 	if err != nil {
 		s.log.LogAttrs(ctx, slog.LevelError, "failed to check team existence",
 			slog.String("team_name", req.TeamName), slog.String("error", err.Error()))
-		return team.AddTeamResponse{}, err
+		return nil, err
 	}
 
 	if exists {
 		s.log.LogAttrs(ctx, slog.LevelWarn, "team already exists",
 			slog.String("team_name", req.TeamName))
-		return team.AddTeamResponse{}, errors.NewTeamExists("team_name already exists")
+		return nil, errors.NewTeamExists("team_name already exists")
 	}
 
 	domainTeam := &models.Team{
@@ -64,17 +64,17 @@ func (s *TeamService) AddTeam(ctx context.Context, req team.AddTeamRequest) (tea
 		})
 	}
 
-	if err := s.teamRepo.CreateOrUpdateTeam(ctx, domainTeam); err != nil {
+	if err = s.teamRepo.CreateOrUpdateTeam(ctx, domainTeam); err != nil {
 		s.log.LogAttrs(ctx, slog.LevelError, "failed to create team",
 			slog.String("team_name", req.TeamName), slog.String("error", err.Error()))
-		return team.AddTeamResponse{}, err
+		return nil, err
 	}
 
 	s.log.LogAttrs(ctx, slog.LevelInfo, "team created successfully",
 		slog.String("team_name", req.TeamName),
 		slog.Int("members_count", len(req.Members)))
 
-	return team.AddTeamResponse{
+	return &team.AddTeamResponse{
 		Team: team.Team{
 			TeamName: req.TeamName,
 			Members:  req.Members,
@@ -83,18 +83,18 @@ func (s *TeamService) AddTeam(ctx context.Context, req team.AddTeamRequest) (tea
 }
 
 // GetTeam returns a team with all its members.
-func (s *TeamService) GetTeam(ctx context.Context, teamName string) (team.GetTeamResponse, error) {
+func (s *TeamService) GetTeam(ctx context.Context, teamName string) (*team.GetTeamResponse, error) {
 	t, err := s.teamRepo.GetTeamByName(ctx, teamName)
 	if err != nil {
 		s.log.LogAttrs(ctx, slog.LevelError, "failed to get team",
 			slog.String("team_name", teamName), slog.String("error", err.Error()))
-		return team.GetTeamResponse{}, err
+		return nil, err
 	}
 
 	if t == nil {
 		s.log.LogAttrs(ctx, slog.LevelWarn, "team not found",
 			slog.String("team_name", teamName))
-		return team.GetTeamResponse{}, errors.NewNotFound("team not found")
+		return nil, errors.NewNotFound("team not found")
 	}
 
 	members := make([]team.TeamMember, 0, len(t.Members))
@@ -110,7 +110,7 @@ func (s *TeamService) GetTeam(ctx context.Context, teamName string) (team.GetTea
 		slog.String("team_name", teamName),
 		slog.Int("members_count", len(members)))
 
-	return team.GetTeamResponse{
+	return &team.GetTeamResponse{
 		TeamName: teamName,
 		Members:  members,
 	}, nil
