@@ -33,6 +33,9 @@ func NewUserService(
 	prRepo PullRequestRepositoryForUser,
 	log *slog.Logger,
 ) *UserService {
+	if log == nil {
+		log = slog.Default()
+	}
 	return &UserService{
 		userRepo: userRepo,
 		prRepo:   prRepo,

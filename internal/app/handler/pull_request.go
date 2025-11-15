@@ -28,6 +28,12 @@ func NewPullRequestHandler(
 	service PullRequestService,
 	logger *slog.Logger,
 	validate *validator.Validate) *PullRequestHandler {
+	if logger == nil {
+		logger = slog.Default()
+	}
+	if validate == nil {
+		validate = validator.New()
+	}
 	return &PullRequestHandler{
 		service:  service,
 		logger:   logger,

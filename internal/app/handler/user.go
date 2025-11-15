@@ -28,6 +28,12 @@ func NewUserHandler(
 	service UserService,
 	logger *slog.Logger,
 	validate *validator.Validate) *UserHandler {
+	if logger == nil {
+		logger = slog.Default()
+	}
+	if validate == nil {
+		validate = validator.New()
+	}
 	return &UserHandler{
 		service:  service,
 		logger:   logger,

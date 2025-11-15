@@ -28,6 +28,12 @@ func NewTeamHandler(
 	service TeamService,
 	logger *slog.Logger,
 	validate *validator.Validate) *TeamHandler {
+	if logger == nil {
+		logger = slog.Default()
+	}
+	if validate == nil {
+		validate = validator.New()
+	}
 	return &TeamHandler{
 		service:  service,
 		logger:   logger,

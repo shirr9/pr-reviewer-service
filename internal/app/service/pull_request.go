@@ -55,6 +55,9 @@ func NewPullRequestService(
 	uow Transactor,
 	log *slog.Logger,
 ) *PullRequestService {
+	if log == nil {
+		log = slog.Default()
+	}
 	return &PullRequestService{
 		prRepo:       prRepo,
 		reviewerRepo: reviewerRepo,

@@ -24,6 +24,9 @@ type TeamService struct {
 
 // NewTeamService creates a new team service.
 func NewTeamService(teamRepo TeamRepository, log *slog.Logger) *TeamService {
+	if log == nil {
+		log = slog.Default()
+	}
 	return &TeamService{
 		teamRepo: teamRepo,
 		log:      log,
