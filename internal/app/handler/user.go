@@ -37,30 +37,34 @@ func NewUserHandler(
 
 // SetIsActive handles setIsActive request.
 func (h *UserHandler) SetIsActive(w http.ResponseWriter, r *http.Request) {
+	op := "UserHandler.SetIsActive"
+	logger := h.logger.With(slog.String("op", op))
 	var req userDto.SetIsActiveRequest
 	if err := decodeAndValidate(r, h.validate, &req); err != nil {
-		handleValidationError(w, err, h.logger)
+		handleValidationError(w, err, logger)
 		return
 	}
 	response, err := h.service.SetIsActive(r.Context(), req)
 	if err != nil {
-		handleServiceError(w, err, h.logger)
+		handleServiceError(w, err, logger)
 		return
 	}
-	sendSuccessResponse(w, http.StatusOK, response, h.logger)
+	sendSuccessResponse(w, http.StatusOK, response, logger)
 }
 
 // GetReview handles getReview request.
 func (h *UserHandler) GetReview(w http.ResponseWriter, r *http.Request) {
+	op := "UserHandler.GetReview"
+	logger := h.logger.With(slog.String("op", op))
 	userID := r.URL.Query().Get("user_id")
 	if userID == "" {
-		handleValidationError(w, fmt.Errorf("user_id is required"), h.logger)
+		handleValidationError(w, fmt.Errorf("user_id is required"), logger)
 		return
 	}
 	response, err := h.service.GetReview(r.Context(), userID)
 	if err != nil {
-		handleServiceError(w, err, h.logger)
+		handleServiceError(w, err, logger)
 		return
 	}
-	sendSuccessResponse(w, http.StatusOK, response, h.logger)
+	sendSuccessResponse(w, http.StatusOK, response, logger)
 }
