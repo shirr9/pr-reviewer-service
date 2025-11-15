@@ -3,7 +3,7 @@ package team
 // AddTeamRequest represents the request to create a team with members.
 type AddTeamRequest struct {
 	TeamName string       `json:"team_name" validate:"required"`
-	Members  []TeamMember `json:"members" validate:"required,dive"`
+	Members  []TeamMember `json:"members" validate:"required,min=1,dive"`
 }
 
 // TeamMember represents a member of the team.
