@@ -21,7 +21,7 @@ func TestTeamService_AddTeam(t *testing.T) {
 	mockTeamRepo := mocks.NewMockTeamRepository(ctrl)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
-	service := NewTeamService(mockTeamRepo, logger)
+	service := NewTeamService(mockTeamRepo, nil, nil, nil, nil, logger)
 
 	t.Run("Success - Add new team", func(t *testing.T) {
 		ctx := context.Background()
@@ -140,7 +140,7 @@ func TestTeamService_GetTeam(t *testing.T) {
 	mockTeamRepo := mocks.NewMockTeamRepository(ctrl)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
-	service := NewTeamService(mockTeamRepo, logger)
+	service := NewTeamService(mockTeamRepo, nil, nil, nil, nil, logger)
 
 	t.Run("Success - Get existing team", func(t *testing.T) {
 		ctx := context.Background()
