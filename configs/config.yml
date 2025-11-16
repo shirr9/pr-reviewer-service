@@ -1,0 +1,16 @@
+# env can be dev/local/prod
+env: "dev"
+
+server:
+  port: 8080
+  env: "dev"
+  read_timeout: 10s
+  write_timeout: 10s
+
+postgres:
+  user: "postgres"
+  password: ""
+  host: "db"  # use "db" for Docker, "localhost" for local development
+  port: "5432"
+  db_name: "mydb1"
+  sslmode: "disable"
