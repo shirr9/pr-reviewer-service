@@ -46,23 +46,27 @@ func main() {
 
 	prService := service.NewPullRequestService(prRepo, reviewerRepo, userRepo, uow, appLogger)
 	userService := service.NewUserService(userRepo, prRepo, appLogger)
-	teamService := service.NewTeamService(teamRepo, appLogger)
+	teamService := service.NewTeamService(teamRepo, userRepo, prRepo, reviewerRepo, uow, appLogger)
+	statisticsService := service.NewStatisticsService(userRepo, prRepo, reviewerRepo, appLogger)
 
 	validate := validator.New()
 
 	prHandler := handler.NewPullRequestHandler(prService, appLogger, validate)
 	userHandler := handler.NewUserHandler(userService, appLogger, validate)
 	teamHandler := handler.NewTeamHandler(teamService, appLogger, validate)
+	statisticsHandler := handler.NewStatisticsHandler(statisticsService, appLogger)
 
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("POST /team/add", teamHandler.AddTeam)
 	mux.HandleFunc("GET /team/get", teamHandler.GetTeam)
+	mux.HandleFunc("POST /team/deactivate", teamHandler.DeactivateTeam)
 	mux.HandleFunc("POST /users/setIsActive", userHandler.SetIsActive)
 	mux.HandleFunc("GET /users/getReview", userHandler.GetReview)
 	mux.HandleFunc("POST /pullRequest/create", prHandler.CreatePR)
 	mux.HandleFunc("POST /pullRequest/merge", prHandler.MergePR)
 	mux.HandleFunc("POST /pullRequest/reassign", prHandler.ReassignReviewer)
+	mux.HandleFunc("GET /statistics", statisticsHandler.GetStatistics)
 
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)
 	srv := &http.Server{
