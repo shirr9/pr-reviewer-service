@@ -14,6 +14,7 @@ import (
 type TeamService interface {
 	AddTeam(ctx context.Context, req teamDto.AddTeamRequest) (*teamDto.AddTeamResponse, error)
 	GetTeam(ctx context.Context, teamName string) (*teamDto.GetTeamResponse, error)
+	DeactivateTeam(ctx context.Context, teamName string) (*teamDto.DeactivateTeamResponse, error)
 }
 
 // TeamHandler handles team related HTTP requests.
@@ -68,6 +69,23 @@ func (h *TeamHandler) GetTeam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response, err := h.service.GetTeam(r.Context(), teamName)
+	if err != nil {
+		handleServiceError(w, err, logger)
+		return
+	}
+	sendSuccessResponse(w, http.StatusOK, response, logger)
+}
+
+// DeactivateTeam deactivates all users in a team and reassigns open PRs.
+func (h *TeamHandler) DeactivateTeam(w http.ResponseWriter, r *http.Request) {
+	op := "TeamHandler.DeactivateTeam"
+	logger := h.logger.With(slog.String("op", op))
+	var req teamDto.DeactivateTeamRequest
+	if err := decodeAndValidate(r, h.validate, &req); err != nil {
+		handleValidationError(w, err, logger)
+		return
+	}
+	response, err := h.service.DeactivateTeam(r.Context(), req.TeamName)
 	if err != nil {
 		handleServiceError(w, err, logger)
 		return

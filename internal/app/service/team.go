@@ -16,20 +16,53 @@ type TeamRepository interface {
 	IsExists(ctx context.Context, teamName string) (bool, error)
 }
 
+type TeamUserRepository interface {
+	FindByTeamName(ctx context.Context, teamName string) ([]*models.User, error)
+	DeactivateTeamUsers(ctx context.Context, teamName string) (int, error)
+}
+
+type TeamPRRepository interface {
+	FindOpenPRsByReviewers(ctx context.Context, reviewerIDs []string) ([]*models.PullRequest, error)
+}
+
+type TeamReviewerRepository interface {
+	GetReviewers(ctx context.Context, prID string) ([]string, error)
+	RemoveReviewer(ctx context.Context, prID, reviewerID string) error
+}
+
+type TeamTransactor interface {
+	WithinTransaction(ctx context.Context, fn func(ctx context.Context) error) error
+}
+
 // TeamService implements business logic for managing teams.
 type TeamService struct {
-	teamRepo TeamRepository
-	log      *slog.Logger
+	teamRepo     TeamRepository
+	userRepo     TeamUserRepository
+	prRepo       TeamPRRepository
+	reviewerRepo TeamReviewerRepository
+	uow          TeamTransactor
+	log          *slog.Logger
 }
 
 // NewTeamService creates a new team service.
-func NewTeamService(teamRepo TeamRepository, log *slog.Logger) *TeamService {
+func NewTeamService(
+	teamRepo TeamRepository,
+	userRepo TeamUserRepository,
+	prRepo TeamPRRepository,
+	reviewerRepo TeamReviewerRepository,
+	uow TeamTransactor,
+	log *slog.Logger,
+) *TeamService {
 	if log == nil {
 		log = slog.Default()
 	}
 	return &TeamService{
-		teamRepo: teamRepo,
-		log:      log,
+		teamRepo:     teamRepo,
+		userRepo:     userRepo,
+		prRepo:       prRepo,
+		reviewerRepo: reviewerRepo,
+		uow:          uow,
+		log:          log,
 	}
 }
 
@@ -116,5 +149,87 @@ func (s *TeamService) GetTeam(ctx context.Context, teamName string) (*team.GetTe
 	return &team.GetTeamResponse{
 		TeamName: teamName,
 		Members:  members,
+	}, nil
+}
+
+// DeactivateTeam deactivates all users in a team and reassigns open PRs.
+func (s *TeamService) DeactivateTeam(ctx context.Context, teamName string) (*team.DeactivateTeamResponse, error) {
+	t, err := s.teamRepo.GetTeamByName(ctx, teamName)
+	if err != nil {
+		s.log.LogAttrs(ctx, slog.LevelError, "failed to get team",
+			slog.String("team_name", teamName), slog.String("error", err.Error()))
+		return nil, err
+	}
+
+	if t == nil {
+		s.log.LogAttrs(ctx, slog.LevelWarn, "team not found",
+			slog.String("team_name", teamName))
+		return nil, errors.NewNotFound("team not found")
+	}
+
+	users, err := s.userRepo.FindByTeamName(ctx, teamName)
+	if err != nil {
+		s.log.LogAttrs(ctx, slog.LevelError, "failed to find users by team",
+			slog.String("team_name", teamName), slog.String("error", err.Error()))
+		return nil, err
+	}
+
+	reviewerIDs := make([]string, 0, len(users))
+	for _, user := range users {
+		reviewerIDs = append(reviewerIDs, user.Id)
+	}
+
+	var deactivatedCount int
+	var removedAssignments int
+
+	err = s.uow.WithinTransaction(ctx, func(txCtx context.Context) error {
+		openPRs, err := s.prRepo.FindOpenPRsByReviewers(txCtx, reviewerIDs)
+		if err != nil {
+			return err
+		}
+
+		for _, pr := range openPRs {
+			reviewers, err := s.reviewerRepo.GetReviewers(txCtx, pr.Id)
+			if err != nil {
+				return err
+			}
+
+			for _, reviewerID := range reviewers {
+				for _, uid := range reviewerIDs {
+					if reviewerID == uid {
+						if err := s.reviewerRepo.RemoveReviewer(txCtx, pr.Id, reviewerID); err != nil {
+							return err
+						}
+						removedAssignments++
+						break
+					}
+				}
+			}
+		}
+
+		count, err := s.userRepo.DeactivateTeamUsers(txCtx, teamName)
+		if err != nil {
+			return err
+		}
+		deactivatedCount = count
+
+		return nil
+	})
+
+	if err != nil {
+		s.log.LogAttrs(ctx, slog.LevelError, "failed to deactivate team",
+			slog.String("team_name", teamName), slog.String("error", err.Error()))
+		return nil, err
+	}
+
+	s.log.LogAttrs(ctx, slog.LevelInfo, "team deactivated successfully",
+		slog.String("team_name", teamName),
+		slog.Int("deactivated_users", deactivatedCount),
+		slog.Int("removed_assignments", removedAssignments))
+
+	return &team.DeactivateTeamResponse{
+		DeactivatedUsers: deactivatedCount,
+		ReassignedPRs:    removedAssignments,
+		UserIDs:          reviewerIDs,
 	}, nil
 }
