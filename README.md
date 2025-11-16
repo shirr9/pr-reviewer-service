@@ -1,21 +1,97 @@
-# pr-reviewer-service
-Сервис назначения ревьюеров для Pull Request’ов
+# PR Reviewer Service
 
-## Запуск
+Микросервис для автоматического назначения ревьюеров на Pull Request.
+
+## Быстрый старт
+
 ```bash
 docker-compose up --build
 ```
 
-## Пояснения
-- Добавлено ограничение: только активный пользователь может создавать Pull Request. 
-Я добавила его для корректной работы системы и предотвращения действий со стороны заблокированных,
-удалённых или неактуальных пользователей.
-- В эндпоинте `/pullRequest/reassign` поле для старого ревьюера называется `old_reviewer_id` (а не `old_user_id`),
-так как это более логичное название. В required указано `[pull_request_id, old_user_id]`, 
-но в примере используется `old_reviewer_id`.
+Сервис будет доступен на `http://localhost:8080`
 
-## Покрытие бизнес логики unit тестами
+## API
+
+### Команды
+
+**Создать команду**
+```bash
+POST /team/add
 ```
-   ~/GolandProjects/pr-reviewer-service  go test ./internal/app/service/... -cover  
-ok      github.com/shirr9/pr-reviewer-service/internal/app/service      0.010s  coverage: 75.0% of statements
+
+**Получить команду**
+```bash
+GET /team/get?team_name=backend
 ```
+
+**Деактивировать команду**
+```bash
+POST /team/deactivate
+```
+
+### Пользователи
+
+**Изменить статус**
+```bash
+POST /users/setIsActive
+```
+
+**Получить PR пользователя**
+```bash
+GET /users/getReview?user_id=u1
+```
+
+### Pull Requests
+
+**Создать PR**
+```bash
+POST /pullRequest/create
+```
+
+**Merge PR**
+```bash
+POST /pullRequest/merge
+```
+
+**Переназначить ревьюера**
+```bash
+POST /pullRequest/reassign
+```
+
+### Статистика
+
+**Получить статистику**
+```bash
+GET /statistics
+```
+
+## Тестирование
+
+**Unit-тесты**
+```bash
+make test
+```
+
+**E2E тесты**
+```bash
+E2E_TEST=true make e2e-test
+```
+
+**Нагрузочное тестирование**
+```bash
+make load-test
+```
+
+**Линтер**
+```bash
+make lint
+```
+
+## Makefile
+
+- `make build` - сборка
+- `make test` - тесты
+- `make lint` - линтер
+- `make docker-up` - запуск
+- `make docker-down` - остановка
+- `make help` - справка
