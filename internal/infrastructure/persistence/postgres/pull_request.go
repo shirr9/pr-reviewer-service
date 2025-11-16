@@ -110,3 +110,61 @@ func (r *PullRequestRepository) FindByReviewer(ctx context.Context, reviewerID s
 
 	return prs, nil
 }
+
+// GetAllPRs returns all pull requests.
+func (r *PullRequestRepository) GetAllPRs(ctx context.Context) ([]*models.PullRequest, error) {
+	query := `SELECT id, title, author_id, status, created_at, merged_at, updated_at
+	          FROM pull_request
+	          ORDER BY created_at DESC`
+
+	rows, err := r.pool.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get all PRs: %w", err)
+	}
+	defer rows.Close()
+
+	var prs []*models.PullRequest
+	for rows.Next() {
+		var pr models.PullRequest
+		if err = rows.Scan(
+			&pr.Id, &pr.Title, &pr.AuthorId, &pr.Status,
+			&pr.CreatedAt, &pr.MergedAt, &pr.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan PR: %w", err)
+		}
+		prs = append(prs, &pr)
+	}
+
+	return prs, nil
+}
+
+// FindOpenPRsByReviewers finds all open PRs where any of the specified reviewers is assigned.
+func (r *PullRequestRepository) FindOpenPRsByReviewers(ctx context.Context, reviewerIDs []string) ([]*models.PullRequest, error) {
+	query := `SELECT DISTINCT pr.id, pr.title, pr.author_id, pr.status, 
+	                 pr.created_at, pr.merged_at, pr.updated_at
+	          FROM pull_request pr
+	          JOIN pr_reviewer prr ON pr.id = prr.pr_id
+	          WHERE prr.reviewer_id = ANY($1) AND pr.status = 'OPEN'
+	          ORDER BY pr.created_at DESC`
+
+	executor := getTx(ctx, r.pool)
+	rows, err := executor.Query(ctx, query, reviewerIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find open PRs by reviewers: %w", err)
+	}
+	defer rows.Close()
+
+	var prs []*models.PullRequest
+	for rows.Next() {
+		var pr models.PullRequest
+		if err = rows.Scan(
+			&pr.Id, &pr.Title, &pr.AuthorId, &pr.Status,
+			&pr.CreatedAt, &pr.MergedAt, &pr.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan PR: %w", err)
+		}
+		prs = append(prs, &pr)
+	}
+
+	return prs, nil
+}

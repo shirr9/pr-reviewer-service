@@ -113,3 +113,41 @@ func (r *ReviewerRepository) ReplaceReviewer(ctx context.Context, prID, oldRevie
 
 	return nil
 }
+
+// GetAllReviewerCounts returns a map of reviewer IDs to their assignment counts.
+func (r *ReviewerRepository) GetAllReviewerCounts(ctx context.Context) (map[string]int, error) {
+	query := `SELECT reviewer_id, COUNT(*) as count
+	          FROM pr_reviewer
+	          GROUP BY reviewer_id`
+
+	rows, err := r.pool.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get reviewer counts: %w", err)
+	}
+	defer rows.Close()
+
+	counts := make(map[string]int)
+	for rows.Next() {
+		var reviewerID string
+		var count int
+		if err := rows.Scan(&reviewerID, &count); err != nil {
+			return nil, fmt.Errorf("failed to scan reviewer count: %w", err)
+		}
+		counts[reviewerID] = count
+	}
+
+	return counts, nil
+}
+
+// RemoveReviewer removes a reviewer from a PR.
+func (r *ReviewerRepository) RemoveReviewer(ctx context.Context, prID, reviewerID string) error {
+	query := `DELETE FROM pr_reviewer WHERE pr_id = $1 AND reviewer_id = $2`
+
+	executor := getTx(ctx, r.pool)
+	_, err := executor.Exec(ctx, query, prID, reviewerID)
+	if err != nil {
+		return fmt.Errorf("failed to remove reviewer: %w", err)
+	}
+
+	return nil
+}

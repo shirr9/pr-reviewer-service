@@ -75,3 +75,64 @@ func (r *UserRepository) FindActiveCandidatesForReassignment(ctx context.Context
 
 	return users, nil
 }
+
+// GetAllUsers returns all users.
+func (r *UserRepository) GetAllUsers(ctx context.Context) ([]*models.User, error) {
+	query := `SELECT id, username, team_name, is_active FROM "user" ORDER BY id`
+
+	rows, err := r.pool.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get all users: %w", err)
+	}
+	defer rows.Close()
+
+	var users []*models.User
+	for rows.Next() {
+		var user models.User
+		if err := rows.Scan(&user.Id, &user.Name, &user.TeamName, &user.IsActive); err != nil {
+			return nil, fmt.Errorf("failed to scan user: %w", err)
+		}
+		users = append(users, &user)
+	}
+
+	return users, nil
+}
+
+// FindByTeamName finds all users in a team.
+func (r *UserRepository) FindByTeamName(ctx context.Context, teamName string) ([]*models.User, error) {
+	query := `SELECT id, username, team_name, is_active 
+	          FROM "user" 
+	          WHERE team_name = $1
+	          ORDER BY id`
+
+	executor := getTx(ctx, r.pool)
+	rows, err := executor.Query(ctx, query, teamName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find users by team: %w", err)
+	}
+	defer rows.Close()
+
+	var users []*models.User
+	for rows.Next() {
+		var user models.User
+		if err := rows.Scan(&user.Id, &user.Name, &user.TeamName, &user.IsActive); err != nil {
+			return nil, fmt.Errorf("failed to scan user: %w", err)
+		}
+		users = append(users, &user)
+	}
+
+	return users, nil
+}
+
+// DeactivateTeamUsers deactivates all users in a team.
+func (r *UserRepository) DeactivateTeamUsers(ctx context.Context, teamName string) (int, error) {
+	query := `UPDATE "user" SET is_active = false WHERE team_name = $1 AND is_active = true`
+
+	executor := getTx(ctx, r.pool)
+	result, err := executor.Exec(ctx, query, teamName)
+	if err != nil {
+		return 0, fmt.Errorf("failed to deactivate team users: %w", err)
+	}
+
+	return int(result.RowsAffected()), nil
+}
